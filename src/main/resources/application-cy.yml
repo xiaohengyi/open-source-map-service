@@ -1,0 +1,74 @@
+spring:
+  application:
+    name: open-source-map-service
+  # 支持 swagger3
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  # 数据库配置
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      max-lifetime: 120000
+      allow-pool-suspension: true
+      connection-timeout: 20000
+      maximum-pool-size: 20
+      data-source-properties:
+        cachePrepStmts: true
+        prepStmtCacheSize: 250
+        prepStmtCacheSqlLimit: 2048
+        useServerPrepStmts: true
+    dynamic:
+      primary: master #设置默认的数据源或者数据源组,默认值即为master
+      strict: false #设置严格模式,默认false不启动. 启动后在未匹配到指定数据源时候回抛出异常,不启动会使用默认数据源.
+      datasource:
+        dm8:
+          url: jdbc:dm://localhost:5236?schema=OPEN_SOURCE&compatibleMode=mysql&clobAsString=true&characterEncoding=UTF-8
+          username: OPEN_SOURCE
+          password: Admin@9000
+          driver-class-name: dm.jdbc.driver.DmDriver
+          hikari:
+            connection-timeout: 30000
+  # 文件上传
+  servlet:
+    multipart:
+      # 大小限制
+      max-file-size: 10MB
+server:
+  address: 0.0.0.0
+  port: 8102
+  servlet:
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
+
+mybatis-plus:
+  type-handlers-package: com.yupi.springbootinit.injector
+  type-aliases-package: com.yupi.springbootinit.model.entity
+  configuration:
+    map-underscore-to-camel-case: true
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDelete # 全局逻辑删除的实体字段名
+      logic-delete-value: 1 # 逻辑已删除值（默认为 1）
+      logic-not-delete-value: 0 # 逻辑未删除值（默认为 0）
+
+#log
+logging:
+  level:
+    root: info
+    org.apache.kafka.clients.NetworkClient: error
+    org.apache.kafka.clients.admin: warn
+    org.apache.kafka.clients.consumer: warn
+    org.springframework.aop: debug
+
+auth:
+  remote:
+    enabled: false
+    verify-url: http://user-system.local/api/auth/verify
+    connect-timeout-ms: 2000
+    read-timeout-ms: 3000
+    header-fallback: true   # 或 false，强制必须远端核验
+

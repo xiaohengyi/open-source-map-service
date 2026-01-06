@@ -1,0 +1,107 @@
+spring:
+  redis:
+    host: 192.168.113.225
+    port: 6379
+  application:
+    name: open-source-map-service
+  # 默认 dev 环境
+  profiles:
+    active: dev
+  # 支持 swagger3
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  #  redis:
+  #    host: 192.168.210.179
+  #    port: 6379
+  #    database: 9
+  #    password: cetc54cetc54
+  # 数据库配置
+  datasource:
+    driver-class-name: dm.jdbc.driver.DmDriver
+    hikari:
+      max-lifetime: 120000
+      allow-pool-suspension: true
+      connection-timeout: 20000
+      maximum-pool-size: 20
+      data-source-properties:
+        cachePrepStmts: true
+        prepStmtCacheSize: 250
+        prepStmtCacheSqlLimit: 2048
+        useServerPrepStmts: true
+    dynamic:
+      primary: master #设置默认的数据源或者数据源组,默认值即为master
+      strict: false #设置严格模式,默认false不启动. 启动后在未匹配到指定数据源时候回抛出异常,不启动会使用默认数据源.
+      datasource:
+        dm8:
+          url: jdbc:dm://192.168.210.201:5236
+          username: OPEN_SOURCE
+          password: Admin@9000
+          driver-class-name: dm.jdbc.driver.DmDriver
+          hikari:
+            connection-timeout: 30000
+  # 文件上传
+  servlet:
+    multipart:
+      # 大小限制
+      max-file-size: 10MB
+server:
+  address: 0.0.0.0
+  port: 8102
+  servlet:
+    # cookie 30 天过期
+    session:
+      cookie:
+        max-age: 2592000
+
+mybatis-plus:
+  type-handlers-package: com.yupi.springbootinit.injector
+  type-aliases-package: com.yupi.springbootinit.model.entity
+  mapperLocations: classpath:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDelete # 全局逻辑删除的实体字段名
+      logic-delete-value: 1 # 逻辑已删除值（默认为 1）
+      logic-not-delete-value: 0 # 逻辑未删除值（默认为 0）
+
+third:
+  open: 1                           #1：开启集成登录，请求头需携带 auth_center_token；0关闭集成登录，走原登录流程
+  #  url: http://192.168.210.157:16310  #wjn第三方版单点登录，后台服务
+  #  checkToken: /third/checkToken      #wjn第三方版单点登录，验证是否登录后台服务接口
+  #  logout: /logout                    #wjn第三方版单点登录，退出登录后台服务接口
+  xtbs: 1942500742422069249          #wjn用户管理软件，第三方系统注册界面，本系统的系统标示
+  token: -1373436266                 #单点登录应用token
+  softname: 知识图谱                  #单点登录应用名称
+  rjmc: 统一消息服务管理                #单点登录软件名称
+  #  login: /xtglfw/loginInt/login
+  login: /login
+  url: https://192.168.210.202:22002/xtglfw/loginInt
+  checkToken: /isLogin
+  #  logout: /xtglfw/loginInt/logout
+  logout: /logout
+
+
+#log
+logging:
+  level:
+    root: info
+    org.apache.kafka.clients.NetworkClient: error
+    org.apache.kafka.clients.admin: warn
+    org.apache.kafka.clients.consumer: warn
+    org.springframework.aop: debug
+
+auth:
+  remote:
+    enabled: false
+    verify-url: http://user-system.local/api/auth/verify
+    connect-timeout-ms: 2000
+    read-timeout-ms: 3000
+    header-fallback: true   # 或 false，强制必须远端核验
+
+
+admin: 1000
+shoufashi: 10038
+zhuren: 10027

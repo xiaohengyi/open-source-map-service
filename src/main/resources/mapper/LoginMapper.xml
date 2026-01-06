@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yupi.springbootinit.mapper.LoginDao">
+
+
+    <select id="initUserInfo" resultType="com.yupi.springbootinit.entity.SjyfwYhxx">
+        select *
+        from sjyfw_yhxx
+        where yhbz = #{yhbz}
+    </select>
+
+    <select id="getTopBm" resultType="com.yupi.springbootinit.entity.ZdbBm">
+        select *
+        from zdb_bm
+        where xh = (select substr(xh, 0, 2) as xh from zdb_bm where bmnm = #{bmnm})
+    </select>
+
+
+
+</mapper>
