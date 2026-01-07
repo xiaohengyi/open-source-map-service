@@ -27,6 +27,9 @@ public class SiteQueryDTO {
     @ApiModelProperty("信息渠道（模糊）")
     private String channel;
 
+    @ApiModelProperty("数据质量（一般/重要/非常重要）")
+    private String dataQuality;
+
     @ApiModelProperty("覆盖国家代码列表（必须全部命中，AND 条件，基于 REL_SITE_SCOPE）")
     private List<String> countryCodes;
 
