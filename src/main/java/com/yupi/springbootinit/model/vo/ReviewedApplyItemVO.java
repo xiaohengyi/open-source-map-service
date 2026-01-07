@@ -55,6 +55,9 @@ public class ReviewedApplyItemVO {
     @ApiModelProperty("备注（申请时快照）")
     private String remark;
 
+    @ApiModelProperty("数据质量（申请时快照）")
+    private String dataQuality;
+
     @ApiModelProperty("主覆盖国家代码（ISO-3166-1 alpha-2 或 ALL）（申请时快照）")
     private String mainCountryCode;
 
@@ -111,6 +114,9 @@ public class ReviewedApplyItemVO {
 
     @ApiModelProperty("当前站点URL（若存在）")
     private String currentUrl;
+
+    @ApiModelProperty("当前数据质量（若存在）")
+    private String currentDataQuality;
 
     @ApiModelProperty("当前主覆盖国家代码（若存在）")
     private String currentMainCountryCode;

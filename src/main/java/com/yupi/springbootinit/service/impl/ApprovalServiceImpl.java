@@ -19,6 +19,7 @@ import com.yupi.springbootinit.security.UserContext;
 import com.yupi.springbootinit.security.UserContextHolder;
 import com.yupi.springbootinit.service.ApprovalService;
 import com.yupi.springbootinit.service.SiteService;
+import com.yupi.springbootinit.utils.DataQualityUtils;
 import com.yupi.springbootinit.utils.UrlUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -120,8 +121,9 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
         // 4) 判断动作（关键改动）：以“数据库是否存在该ID”为准，禁止“自定义ID新增”
         boolean isUpdate = false;
         String targetSiteId;
+        OsSiteDO exists = null;
         if (StringUtils.hasText(dto.getId())) {
-            OsSiteDO exists = siteService.getById(dto.getId());
+            exists = siteService.getById(dto.getId());
             if (exists != null && (exists.getIsDelete() == null || exists.getIsDelete() == 0)) {
                 // 确认是编辑
                 isUpdate = true;
@@ -142,6 +144,18 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
         // 5) 编辑场景：防重复提交同一站点的编辑申请
         if (isUpdate && siteApplyMapper.countPendingUpdateBySite(targetSiteId) > 0) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "该站点已存在待审编辑申请");
+        }
+
+        String dataQualityCandidate =
+                (!StringUtils.hasText(dto.getDataQuality()) && isUpdate && exists != null)
+                        ? exists.getDataQuality()
+                        : dto.getDataQuality();
+        String dataQuality = DataQualityUtils.normalizeOrDefault(dataQualityCandidate);
+        if (dataQuality == null) {
+            if (StringUtils.hasText(dto.getDataQuality())) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "数据质量仅支持：一般/重要/非常重要");
+            }
+            dataQuality = DataQualityUtils.QUALITY_NORMAL;
         }
 
         // 6) 唯一性防御
@@ -184,6 +198,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                 .summary(StringUtils.hasText(dto.getSummary()) ? dto.getSummary().trim() : null)
                 .keywordsText(StringUtils.trimWhitespace(Objects.toString(dto.getKeywordsText(), "")))
                 .remark(StringUtils.hasText(dto.getRemark()) ? dto.getRemark().trim() : null)
+                .dataQuality(dataQuality)
                 .mainCountryCode(mainCode)
                 .themeIdsText(themeIds == null ? null : String.join(",", themeIds))
                 .scopeCountryCodesText(scopes.isEmpty() ? null : String.join(",", scopes))
@@ -230,6 +245,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
         dto.setSummary(apply.getSummary());
         dto.setKeywordsText(apply.getKeywordsText());
         dto.setRemark(apply.getRemark());
+        dto.setDataQuality(apply.getDataQuality());
         dto.setMainCountryCode(apply.getMainCountryCode());
         dto.setThemeIds(parseCsv(apply.getThemeIdsText()));
         dto.setScopes(parseCsv(apply.getScopeCountryCodesText()));
@@ -379,6 +395,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                     })
                     .collect(Collectors.toList());
 
+            String dq = DataQualityUtils.normalizeOrDefault(a.getDataQuality());
             SiteApplyVO vo = SiteApplyVO.builder()
                     .id(a.getId())
                     .targetSiteId(a.getTargetSiteId())
@@ -390,6 +407,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                     .summary(a.getSummary())
                     .keywordsText(a.getKeywordsText())
                     .remark(a.getRemark())
+                    .dataQuality(dq == null ? DataQualityUtils.QUALITY_NORMAL : dq)
                     .mainCountryCode(a.getMainCountryCode())
                     .mainCountryNameZh(mainZh)
                     .mainCountryNameEn(mainEn)
@@ -442,6 +460,8 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
         for (SiteApplyVO a : applies) {
             OsSiteDO cur = (a.getTargetSiteId() == null) ? null : id2site.get(a.getTargetSiteId());
             boolean existsNow = cur != null && (cur.getIsDelete() == null || cur.getIsDelete() == 0);
+            String snapshotQuality = DataQualityUtils.normalizeOrDefault(a.getDataQuality());
+            String currentQuality = existsNow ? DataQualityUtils.normalizeOrDefault(cur.getDataQuality()) : null;
 
             ReviewedExistenceStatus label;
 
@@ -476,6 +496,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                     .channel(a.getChannel())
                     .provider(a.getProvider())
                     .keywordsText(a.getKeywordsText())
+                    .dataQuality(snapshotQuality == null ? DataQualityUtils.QUALITY_NORMAL : snapshotQuality)
                     .submitUserId(a.getSubmitUserId())
                     .submitUserName(a.getSubmitUserName())
                     .reviewUserId(a.getReviewUserId())
@@ -489,6 +510,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                     .existsNow(existsNow)
                     .currentSiteName(existsNow ? cur.getSiteName() : null)
                     .currentUrl(existsNow ? cur.getUrl() : null)
+                    .currentDataQuality(!existsNow ? null : (currentQuality == null ? DataQualityUtils.QUALITY_NORMAL : currentQuality))
                     .currentMainCountryCode(existsNow ? cur.getMainCountryCode() : null)
                     .currentUpdatedAt(existsNow ? cur.getUpdatedAt() : null)
 
@@ -608,6 +630,9 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                 label = (sameName && sameUrl) ? ReviewedExistenceStatus.NORMAL : ReviewedExistenceStatus.CHANGED;
             }
 
+            String snapshotQuality = DataQualityUtils.normalizeOrDefault(a.getDataQuality());
+            String currentQuality = existsNow ? DataQualityUtils.normalizeOrDefault(now.getDataQuality()) : null;
+
             MyApprovedSiteItemVO vo = MyApprovedSiteItemVO.builder()
                     // —— 申请快照（字段名与 SiteApplyDO 一致）——
                     .id(a.getId())
@@ -620,6 +645,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                     .summary(a.getSummary())
                     .keywordsText(a.getKeywordsText())
                     .remark(a.getRemark())
+                    .dataQuality(snapshotQuality == null ? DataQualityUtils.QUALITY_NORMAL : snapshotQuality)
                     .mainCountryCode(a.getMainCountryCode())
                     .themeIds(themeIds)
                     .themeNames(themeNames)
@@ -640,6 +666,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                     .existsNow(existsNow)
                     .currentSiteName(existsNow ? now.getSiteName() : null)
                     .currentUrl(existsNow ? now.getUrl() : null)
+                    .currentDataQuality(!existsNow ? null : (currentQuality == null ? DataQualityUtils.QUALITY_NORMAL : currentQuality))
                     .currentMainCountryCode(existsNow ? now.getMainCountryCode() : null)
                     .currentUpdatedAt(existsNow ? now.getUpdatedAt() : null)
 
@@ -737,12 +764,13 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                 throw new BusinessException(ErrorCode.OPERATION_ERROR, "仅草稿/被驳回申请可编辑");
             }
 
+            String dataQuality = normalizeDataQualityOrThrow(dto.getDataQuality(), row.getDataQuality());
             int n = siteApplyMapper.updateDraftContent(
                     dto.getId(),
                     siteName, url,
                     safe(dto.getProvider()), safe(dto.getChannel()),
                     safe(dto.getSummary()), keywordsText, safe(dto.getRemark()),
-                    mainCode, themeCsv, scopesCsv
+                    dataQuality, mainCode, themeCsv, scopesCsv
             );
             if (n != 1) throw new BusinessException(ErrorCode.OPERATION_ERROR, "保存草稿失败，请重试");
 
@@ -754,6 +782,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
         final String applyId = genId();
         final String actionType;
         final String finalTargetSiteId;
+        final String dataQuality = normalizeDataQualityOrThrow(dto.getDataQuality(), null);
 
         if (StringUtils.hasText(targetSiteId)) {
             // —— 这是“编辑某个已有站点”的草稿（UPDATE）
@@ -780,6 +809,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                 .summary(safe(dto.getSummary()))
                 .keywordsText(keywordsText)
                 .remark(safe(dto.getRemark()))
+                .dataQuality(dataQuality)
                 .mainCountryCode(mainCode)
                 .themeIdsText(themeCsv)
                 .scopeCountryCodesText(scopesCsv)
@@ -815,11 +845,13 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "仅草稿/被驳回申请可重新提交");
 
         // 覆盖最新内容（允许不完整，仅做清洗）
+        String dataQuality = normalizeDataQualityOrThrow(dto.getDataQuality(), row.getDataQuality());
         int n1 = siteApplyMapper.updateDraftContent(
                 applyId,
                 safe(dto.getSiteName()), safe(dto.getUrl()),
                 safe(dto.getProvider()), safe(dto.getChannel()),
                 safe(dto.getSummary()), trimToNull(dto.getKeywordsText()), safe(dto.getRemark()),
+                dataQuality,
                 upper2(dto.getMainCountryCode()),
                 joinCsv(dto.getThemeIds()),
                 joinCsvUpper(dto.getScopes())
@@ -910,12 +942,13 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
 
         // 3) 若传入 dto，用其覆盖草稿内容（null/空视为不覆盖）
         if (dto != null) {
+            String dataQuality = normalizeDataQualityOrThrow(dto.getDataQuality(), row.getDataQuality());
             siteApplyMapper.updateDraftContent(
                     applyId,
                     safe(dto.getSiteName()), safe(dto.getUrl()),
                     safe(dto.getProvider()), safe(dto.getChannel()),
                     safe(dto.getSummary()), trimToNull(dto.getKeywordsText()), safe(dto.getRemark()),
-                    upper2(dto.getMainCountryCode()),
+                    dataQuality, upper2(dto.getMainCountryCode()),
                     // 主题/范围入库同样走去重与大写规范
                     joinCsv(Optional.ofNullable(dto.getThemeIds()).orElse(Collections.emptyList())),
                     joinCsvUpper(Optional.ofNullable(dto.getScopes()).orElse(Collections.emptyList()))
@@ -943,6 +976,9 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                 dto == null ? null : dto.getKeywordsText(), row.getKeywordsText()));
         toPublish.setRemark(firstNonBlank(
                 dto == null ? null : dto.getRemark(), row.getRemark()));
+        toPublish.setDataQuality(normalizeDataQualityOrThrow(
+                dto == null ? null : dto.getDataQuality(),
+                row.getDataQuality()));
         toPublish.setMainCountryCode(firstNonBlank(
                 dto == null ? null : dto.getMainCountryCode(), row.getMainCountryCode()));
 
@@ -1066,6 +1102,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                         .countryNameEn(nm == null ? null : nm.get("EN"))
                         .build());
             }
+            String dataQuality = DataQualityUtils.normalizeOrDefault(a.getDataQuality());
 
             result.add(SiteApplyVO.builder()
                     .id(a.getId())
@@ -1078,6 +1115,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
                     .summary(a.getSummary())
                     .keywordsText(a.getKeywordsText())
                     .remark(a.getRemark())
+                    .dataQuality(dataQuality == null ? DataQualityUtils.QUALITY_NORMAL : dataQuality)
                     .mainCountryCode(a.getMainCountryCode())
                     .mainCountryNameZh(mainZh)
                     .mainCountryNameEn(mainEn)
@@ -1146,6 +1184,17 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
         if (l == null || l.isEmpty()) return null;
         return l.stream().filter(StringUtils::hasText).map(x -> x.trim().toUpperCase()).distinct()
                 .collect(Collectors.joining(","));
+    }
+    private String normalizeDataQualityOrThrow(String candidate, String fallback) {
+        String source = StringUtils.hasText(candidate) ? candidate : fallback;
+        String norm = DataQualityUtils.normalizeOrDefault(source);
+        if (norm == null) {
+            if (!StringUtils.hasText(candidate)) {
+                return DataQualityUtils.QUALITY_NORMAL;
+            }
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "数据质量仅支持：一般/重要/非常重要");
+        }
+        return norm;
     }
 
     private void logApproval(String applyId, String action, String detail) {

@@ -25,24 +25,36 @@ public class SiteExportRowVO {
     @ExcelProperty(value = "CHANNEL", index = 3)
     private String channel;
 
-    @ExcelProperty(value = "MAIN_COUNTRY_CODE", index = 4)
+    @ExcelProperty(value = "DATA_QUALITY", index = 4)
+    private String dataQuality;
+
+    @ExcelProperty(value = "MAIN_COUNTRY_CODE", index = 5)
     private String mainCountryCode;
 
     /** 覆盖国家代码，逗号拼接，如：CN,US,JP */
-    @ExcelProperty(value = "COVERAGE_COUNTRIES", index = 5)
+    @ExcelProperty(value = "COVERAGE_COUNTRIES", index = 6)
     private String coverageCountries;
 
-    @ExcelProperty(value = "URL", index = 6)
+    @ExcelProperty(value = "URL", index = 7)
     private String url;
 
-    @ExcelProperty(value = "IS_DELETE", index = 7)
+    @ExcelProperty(value = "SUMMARY", index = 8)
+    private String summary;
+
+    @ExcelProperty(value = "KEYWORDS_TEXT", index = 9)
+    private String keywordsText;
+
+    @ExcelProperty(value = "REMARK", index = 10)
+    private String remark;
+
+    @ExcelProperty(value = "IS_DELETE", index = 11)
     private Integer isDelete;
 
     /** 字符串格式：yyyy-MM-dd HH:mm:ss */
-    @ExcelProperty(value = "CREATED_AT", index = 8)
+    @ExcelProperty(value = "CREATED_AT", index = 12)
     private String createdAt;
 
     /** 字符串格式：yyyy-MM-dd HH:mm:ss */
-    @ExcelProperty(value = "UPDATED_AT", index = 9)
+    @ExcelProperty(value = "UPDATED_AT", index = 13)
     private String updatedAt;
 }

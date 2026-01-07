@@ -14,6 +14,7 @@ public final class SiteExcelHeaders {
     public static final String COL_COVERAGE_COUNTRIES  = "COVERAGE_COUNTRIES";
     public static final String COL_PROVIDER            = "PROVIDER";
     public static final String COL_CHANNEL             = "CHANNEL";
+    public static final String COL_DATA_QUALITY        = "DATA_QUALITY";
     public static final String COL_SUMMARY             = "SUMMARY";
     public static final String COL_KEYWORDS_TEXT       = "KEYWORDS_TEXT";
     public static final String COL_REMARK              = "REMARK";
@@ -30,6 +31,7 @@ public final class SiteExcelHeaders {
                     COL_THEME,
                     COL_PROVIDER,
                     COL_CHANNEL,
+                    COL_DATA_QUALITY,
                     COL_MAIN_COUNTRY_CODE,
                     COL_COVERAGE_COUNTRIES,
                     COL_URL,

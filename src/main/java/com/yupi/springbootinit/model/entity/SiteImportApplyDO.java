@@ -53,6 +53,10 @@ public class SiteImportApplyDO {
     @ApiModelProperty("备注")
     private String remark;
 
+    @ApiModelProperty("数据质量：一般/重要/非常重要")
+    @TableField("DATA_QUALITY")
+    private String dataQuality;
+
     @ApiModelProperty("状态：PENDING/APPROVED/REJECTED")
     private String status;
 

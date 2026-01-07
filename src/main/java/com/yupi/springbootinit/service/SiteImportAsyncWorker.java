@@ -9,6 +9,7 @@ import com.yupi.springbootinit.mapper.ImportJobMapper;
 import com.yupi.springbootinit.model.entity.ImportItemDO;
 import com.yupi.springbootinit.model.entity.ImportJobDO;
 import com.yupi.springbootinit.utils.IdUtil;
+import com.yupi.springbootinit.utils.DataQualityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -71,18 +72,26 @@ public class SiteImportAsyncWorker {
                 Set<String> seenUrl = new HashSet<>();
 
                 for (ImportItemDO it : items) {
-                    Map<String, Object> row = readRowMap(it.getRawJson());
-                    String url = trimToNull((String) row.get("url"));
+            Map<String, Object> row = readRowMap(it.getRawJson());
+            String url = trimToNull((String) row.get("url"));
+            String normalizedQuality = DataQualityUtils.normalizeOrDefault(
+                    row.get("dataQuality") == null ? null : row.get("dataQuality").toString());
 
-                    List<String> errs = new ArrayList<>();
-                    if (isBlank((String) row.get("siteName"))) errs.add("网站名称为空");
-                    if (isBlank(url)) errs.add("网站地址为空");
-                    if (isBlank((String) row.get("mainCountryCode"))) errs.add("主覆盖国家为空");
+            List<String> errs = new ArrayList<>();
+            if (isBlank((String) row.get("siteName"))) errs.add("网站名称为空");
+            if (isBlank(url)) errs.add("网站地址为空");
+            if (isBlank((String) row.get("mainCountryCode"))) errs.add("主覆盖国家为空");
+            if (normalizedQuality == null) errs.add("数据质量取值非法（仅支持：一般/重要/非常重要）");
 
-                    if (!errs.isEmpty()) {
-                        it.setValidStatus(INVALID.name());
-                        it.setValidMsg(String.join("; ", errs));
-                        skipped++;
+            if (normalizedQuality != null) {
+                row.put("dataQuality", normalizedQuality);
+                it.setRawJson(writeRowJson(row));
+            }
+
+            if (!errs.isEmpty()) {
+                it.setValidStatus(INVALID.name());
+                it.setValidMsg(String.join("; ", errs));
+                skipped++;
                     } else {
                         it.setValidStatus(VALID.name());
                         it.setValidMsg(null);
@@ -133,6 +142,8 @@ public class SiteImportAsyncWorker {
             List<String> coverageCodes = splitAndUpper(getCellString(r, col.get(COL_COVERAGE_COUNTRIES)));
             String provider = getCellString(r, col.get(COL_PROVIDER));
             String channel = getCellString(r, col.get(COL_CHANNEL));
+            String dataQualityRaw = getCellString(r, col.get(COL_DATA_QUALITY));
+            String dataQuality = DataQualityUtils.normalizeOrDefault(dataQualityRaw);
             String summary = getCellString(r, col.get(COL_SUMMARY));
             String keywordsText = getCellString(r, col.get(COL_KEYWORDS_TEXT));
             String remark = getCellString(r, col.get(COL_REMARK));
@@ -146,6 +157,7 @@ public class SiteImportAsyncWorker {
             rowMap.put("themeNamesText", themeNamesText);
             rowMap.put("provider", provider);
             rowMap.put("channel", channel);
+            rowMap.put("dataQuality", dataQuality == null ? dataQualityRaw : dataQuality);
             rowMap.put("summary", summary);
             rowMap.put("keywordsText", keywordsText);
             rowMap.put("remark", remark);

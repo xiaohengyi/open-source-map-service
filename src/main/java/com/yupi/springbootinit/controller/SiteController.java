@@ -244,14 +244,15 @@ public class SiteController {
                     r.createCell(c++).setCellValue(nvl(row.getTheme()));              // THEME（主题名称）
                     r.createCell(c++).setCellValue(nvl(row.getProvider()));           // PROVIDER
                     r.createCell(c++).setCellValue(nvl(row.getChannel()));            // CHANNEL
+                    r.createCell(c++).setCellValue(nvl(row.getDataQuality()));        // DATA_QUALITY
                     r.createCell(c++).setCellValue(nvl(row.getMainCountryCode()));    // MAIN_COUNTRY_CODE
                     r.createCell(c++).setCellValue(nvl(row.getCoverageCountries()));  // COVERAGE_COUNTRIES
                     r.createCell(c++).setCellValue(nvl(row.getUrl()));                // URL
 
                     // 下面这几个，如果有的话就填，没有就留空
-                    r.createCell(c++).setCellValue("");                               // SUMMARY
-                    r.createCell(c++).setCellValue("");                               // KEYWORDS_TEXT
-                    r.createCell(c++).setCellValue("");                               // REMARK
+                    r.createCell(c++).setCellValue(nvl(row.getSummary()));            // SUMMARY
+                    r.createCell(c++).setCellValue(nvl(row.getKeywordsText()));       // KEYWORDS_TEXT
+                    r.createCell(c++).setCellValue(nvl(row.getRemark()));             // REMARK
 
                     // 保留你原来导出的三列（可选）
                     r.createCell(c++).setCellValue(row.getIsDelete() == null ? "" : String.valueOf(row.getIsDelete()));  // IS_DELETE

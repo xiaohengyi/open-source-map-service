@@ -18,6 +18,7 @@ import com.yupi.springbootinit.model.vo.*;
 import com.yupi.springbootinit.security.UserContext;
 import com.yupi.springbootinit.security.UserContextHolder;
 import com.yupi.springbootinit.service.SiteService;
+import com.yupi.springbootinit.utils.DataQualityUtils;
 import com.yupi.springbootinit.utils.SampleJsonParser;
 import com.yupi.springbootinit.utils.SqlLikeUtils;
 import com.yupi.springbootinit.utils.UrlUtils;
@@ -98,8 +99,9 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
 
         // ★ 编辑场景判断（根据 allowCreateWithGivenId 调整）
         final boolean isUpdate;
+        OsSiteDO target = null;
         if (StringUtils.hasText(dto.getId())) {
-            OsSiteDO target = this.getById(dto.getId());
+            target = this.getById(dto.getId());
             if (target == null) {
                 if (allowCreateWithGivenId) {
                     // 审批流允许：携带给定 ID 进行“受信新增”
@@ -183,6 +185,21 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
         // 5) 生成/确认主键 —— 关键调整：允许“审批流”携带的不存在ID用于新增
         final String siteId = (isUpdate ? dto.getId() : (StringUtils.hasText(dto.getId()) ? dto.getId() : genId()));
 
+        // 数据质量：为空取默认；非法报错；编辑未传则沿用历史值
+        String dataQuality;
+        if (StringUtils.hasText(dto.getDataQuality())) {
+            dataQuality = DataQualityUtils.normalizeOrDefault(dto.getDataQuality());
+            if (dataQuality == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "数据质量仅支持：一般/重要/非常重要");
+            }
+        } else {
+            String fallback = (isUpdate && target != null) ? target.getDataQuality() : null;
+            dataQuality = DataQualityUtils.normalizeOrDefault(fallback);
+            if (dataQuality == null) {
+                dataQuality = DataQualityUtils.QUALITY_NORMAL;
+            }
+        }
+
         // === 关键：createdBy / updatedBy 的归属 ===
         final String createdBy =
                 !isUpdate
@@ -205,6 +222,7 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
                 .keywordsText(keywordsText)
                 .remark(StringUtils.hasText(dto.getRemark()) ? dto.getRemark().trim() : null)
                 .theme(themeText)
+                .dataQuality(dataQuality)
                 .mainCountryCode(mainCode)
                 .createdBy(createdBy)
                 .updatedBy(updatedBy)
@@ -280,10 +298,15 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
             mainZh = names.get("ZH");
             mainEn = names.get("EN");
         }
+        String dataQuality = DataQualityUtils.normalizeOrDefault(po.getDataQuality());
+        if (dataQuality == null) {
+            dataQuality = DataQualityUtils.QUALITY_NORMAL;
+        }
         return SiteVO.builder()
                 .id(po.getId()).siteName(po.getSiteName()).url(po.getUrl())
                 .theme(po.getTheme()).provider(po.getProvider()).channel(po.getChannel())
                 .summary(po.getSummary()).keywordsText(po.getKeywordsText()).remark(po.getRemark())
+                .dataQuality(dataQuality)
                 .mainCountryCode(po.getMainCountryCode()).mainCountryNameZh(mainZh).mainCountryNameEn(mainEn)
                 .themeIds(themeIds).themeNames(themeNames).scopes(scopes)
                 .createdAt(po.getCreatedAt()).updatedAt(po.getUpdatedAt())
@@ -508,6 +531,10 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
                     mainEn = nm.get("EN");
                 }
             }
+            String dataQuality = DataQualityUtils.normalizeOrDefault(po.getDataQuality());
+            if (dataQuality == null) {
+                dataQuality = DataQualityUtils.QUALITY_NORMAL;
+            }
 
             return SiteVO.builder()
                     .id(po.getId())
@@ -519,6 +546,7 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
                     .summary(po.getSummary())
                     .keywordsText(po.getKeywordsText())
                     .remark(po.getRemark())
+                    .dataQuality(dataQuality)
                     .mainCountryCode(po.getMainCountryCode())
                     .mainCountryNameZh(mainZh)
                     .mainCountryNameEn(mainEn)
@@ -861,6 +889,13 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
             if (StringUtils.hasText(po.getTheme())) {
                 themeText = po.getTheme().trim();
             }
+            String dataQuality = DataQualityUtils.normalizeOrDefault(po.getDataQuality());
+            if (dataQuality == null) {
+                dataQuality = DataQualityUtils.QUALITY_NORMAL;
+            }
+            String summary = StringUtils.hasText(po.getSummary()) ? po.getSummary().trim() : null;
+            String keywords = StringUtils.hasText(po.getKeywordsText()) ? po.getKeywordsText().trim() : null;
+            String remark = StringUtils.hasText(po.getRemark()) ? po.getRemark().trim() : null;
 
             // 时间字段转成字符串（导入模板中的 CREATED_AT / UPDATED_AT 也是字符串）
             String createdAtStr = (po.getCreatedAt() != null) ? po.getCreatedAt().format(dtf) : null;
@@ -875,12 +910,20 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
                     .provider(po.getProvider())
                     // 4) CHANNEL
                     .channel(po.getChannel())
+                    // 4.5) DATA_QUALITY
+                    .dataQuality(dataQuality)
                     // 5) MAIN_COUNTRY_CODE
                     .mainCountryCode(po.getMainCountryCode())
                     // 6) COVERAGE_COUNTRIES
                     .coverageCountries(coverageCountries)
                     // 7) URL
                     .url(po.getUrl())
+                    // 8) SUMMARY
+                    .summary(summary)
+                    // 9) KEYWORDS_TEXT
+                    .keywordsText(keywords)
+                    // 10) REMARK
+                    .remark(remark)
                     // 8) IS_DELETE（当前只导出未删除，基本都是 0）
                     .isDelete(po.getIsDelete())
                     // 9) CREATED_AT
@@ -1078,6 +1121,10 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
                     mainEn = nm.get("EN");
                 }
             }
+            String dataQuality = DataQualityUtils.normalizeOrDefault(po.getDataQuality());
+            if (dataQuality == null) {
+                dataQuality = DataQualityUtils.QUALITY_NORMAL;
+            }
 
             SiteVO vo = SiteVO.builder()
                     .id(po.getId())
@@ -1089,6 +1136,7 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
                     .summary(po.getSummary())
                     .keywordsText(po.getKeywordsText())
                     .remark(po.getRemark())
+                    .dataQuality(dataQuality)
                     .mainCountryCode(po.getMainCountryCode())
                     .mainCountryNameZh(mainZh)
                     .mainCountryNameEn(mainEn)

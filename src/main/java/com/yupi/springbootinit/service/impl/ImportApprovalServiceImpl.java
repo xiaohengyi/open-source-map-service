@@ -20,6 +20,7 @@ import com.yupi.springbootinit.model.vo.ImportJobOverviewVO;
 import com.yupi.springbootinit.model.vo.ImportJobWithStatsVO;
 import com.yupi.springbootinit.service.ImportApprovalService;
 import com.yupi.springbootinit.service.SiteService;
+import com.yupi.springbootinit.utils.DataQualityUtils;
 import com.yupi.springbootinit.utils.SqlLikeUtils;
 import io.swagger.annotations.Api;
 import lombok.RequiredArgsConstructor;
@@ -256,6 +257,8 @@ public class ImportApprovalServiceImpl implements ImportApprovalService {
     private ImportApplyVO toVODetail(SiteImportApplyDO a) {
         ImportApplyVO vo = new ImportApplyVO();
         BeanUtils.copyProperties(a, vo);
+        String quality = DataQualityUtils.normalizeOrDefault(a.getDataQuality());
+        vo.setDataQuality(quality == null ? DataQualityUtils.QUALITY_NORMAL : quality);
 
         // 1) 解析 CSV
         List<String> themeIds = parseCsv(a.getThemeIdsText());
@@ -355,6 +358,8 @@ public class ImportApprovalServiceImpl implements ImportApprovalService {
     private ImportApplyVO toVO(SiteImportApplyDO po) {
         ImportApplyVO vo = new ImportApplyVO();
         BeanUtils.copyProperties(po, vo);
+        String quality = DataQualityUtils.normalizeOrDefault(po.getDataQuality());
+        vo.setDataQuality(quality == null ? DataQualityUtils.QUALITY_NORMAL : quality);
         return vo;
     }
 
@@ -370,6 +375,8 @@ public class ImportApprovalServiceImpl implements ImportApprovalService {
         s.setSummary(po.getSummary());
         s.setKeywordsText(po.getKeywordsText());
         s.setRemark(po.getRemark());
+        String quality = DataQualityUtils.normalizeOrDefault(po.getDataQuality());
+        s.setDataQuality(quality == null ? DataQualityUtils.QUALITY_NORMAL : quality);
         s.setScopes(splitCsv(po.getScopesText()));
         return s;
     }

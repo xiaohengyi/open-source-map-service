@@ -47,6 +47,9 @@ public class SiteSaveDTO {
     @Size(max = 512, message = "备注内容过长，最长不能超过512字符")
     private String remark;
 
+    @ApiModelProperty(value = "数据质量（一般/重要/非常重要，不传默认一般）", example = "一般")
+    private String dataQuality;
+
     @ApiModelProperty("主覆盖国家（ISO-3166-1 alpha-2），为空则从 scopes 的 isPrimary 推断")
     @Size(min = 2, max = 3, message = "标准国家代码必须是长度为两位或者三位，例如CN、US或者是ALL（全球）")
     @NotBlank
