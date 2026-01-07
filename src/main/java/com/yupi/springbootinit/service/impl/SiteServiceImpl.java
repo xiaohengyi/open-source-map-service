@@ -378,6 +378,10 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
             String p = SqlLikeUtils.likeContainsLiteral(dto.getChannel());
             qw.apply("CHANNEL LIKE {0} ESCAPE '" + SqlLikeUtils.ESC + "'", p);
         }
+        if (StringUtils.hasText(dto.getDataQuality())) {
+            String dataQuality = DataQualityUtils.requireValidOrDefault(dto.getDataQuality());
+            qw.eq(OsSiteDO::getDataQuality, dataQuality);
+        }
         if (StringUtils.hasText(dto.getMainCountryCode())) {
             qw.eq(OsSiteDO::getMainCountryCode, dto.getMainCountryCode().trim().toUpperCase());
         }
@@ -459,6 +463,10 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
         // includeGlobal = false 时，排除 mainCountryCode = ALL
         if (Boolean.FALSE.equals(dto.getIncludeGlobal())) {
             qw.ne(OsSiteDO::getMainCountryCode, "ALL");
+        }
+        if (StringUtils.hasText(dto.getDataQuality())) {
+            String dataQuality = DataQualityUtils.requireValidOrDefault(dto.getDataQuality());
+            qw.eq(OsSiteDO::getDataQuality, dataQuality);
         }
 
         // 4) 分页参数
