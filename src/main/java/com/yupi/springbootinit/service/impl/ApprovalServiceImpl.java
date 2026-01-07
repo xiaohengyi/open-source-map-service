@@ -147,7 +147,7 @@ public class ApprovalServiceImpl extends ServiceImpl<SiteApplyMapper,SiteApplyDO
         }
 
         String dataQualityCandidate =
-                (!StringUtils.hasText(dto.getDataQuality()) && isUpdate && exists != null)
+                !StringUtils.hasText(dto.getDataQuality()) && isUpdate
                         ? exists.getDataQuality()
                         : dto.getDataQuality();
         String dataQuality = DataQualityUtils.normalizeOrDefault(dataQualityCandidate);
