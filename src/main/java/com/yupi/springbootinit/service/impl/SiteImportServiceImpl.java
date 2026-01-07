@@ -307,7 +307,8 @@ public class SiteImportServiceImpl implements SiteImportService {
                     existing.setSummary(trimToNull((String) row.get("summary")));
                     existing.setKeywordsText(trimToNull((String) row.get("keywordsText")));
                     existing.setRemark(trimToNull((String) row.get("remark")));
-                    existing.setDataQuality(trimToNull((String) row.get("dataQuality")));
+                    String dataQuality = DataQualityUtils.normalizeOrDefault(trimToNull((String) row.get("dataQuality")));
+                    existing.setDataQuality(dataQuality == null ? DataQualityUtils.QUALITY_NORMAL : dataQuality);
                     existing.setStatus(ImportApplyStatus.PENDING.name());
                     // 清理审核痕迹（用作重提）
                     existing.setReviewReason(null);

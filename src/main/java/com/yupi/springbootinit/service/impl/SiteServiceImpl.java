@@ -379,8 +379,7 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
             qw.apply("CHANNEL LIKE {0} ESCAPE '" + SqlLikeUtils.ESC + "'", p);
         }
         if (StringUtils.hasText(dto.getDataQuality())) {
-            String dataQuality = DataQualityUtils.requireValidOrDefault(dto.getDataQuality());
-            qw.eq(OsSiteDO::getDataQuality, dataQuality);
+            applyDataQualityFilter(qw, dto.getDataQuality());
         }
         if (StringUtils.hasText(dto.getMainCountryCode())) {
             qw.eq(OsSiteDO::getMainCountryCode, dto.getMainCountryCode().trim().toUpperCase());
@@ -465,8 +464,7 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
             qw.ne(OsSiteDO::getMainCountryCode, "ALL");
         }
         if (StringUtils.hasText(dto.getDataQuality())) {
-            String dataQuality = DataQualityUtils.requireValidOrDefault(dto.getDataQuality());
-            qw.eq(OsSiteDO::getDataQuality, dataQuality);
+            applyDataQualityFilter(qw, dto.getDataQuality());
         }
 
         // 4) 分页参数
@@ -482,6 +480,17 @@ public class SiteServiceImpl extends ServiceImpl<OsSiteMapper, OsSiteDO> impleme
 
         // 6) 复用 VO 组装
         return buildSiteVoPage(result);
+    }
+
+    private void applyDataQualityFilter(LambdaQueryWrapper<OsSiteDO> qw, String dataQualityInput) {
+        String dataQuality = DataQualityUtils.requireValidOrDefault(dataQualityInput);
+        if (DataQualityUtils.QUALITY_NORMAL.equals(dataQuality)) {
+            qw.and(wrapper -> wrapper.eq(OsSiteDO::getDataQuality, dataQuality)
+                    .or()
+                    .isNull(OsSiteDO::getDataQuality));
+        } else {
+            qw.eq(OsSiteDO::getDataQuality, dataQuality);
+        }
     }
 
 
