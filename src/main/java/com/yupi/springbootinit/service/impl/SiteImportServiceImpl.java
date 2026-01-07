@@ -20,6 +20,7 @@ import com.yupi.springbootinit.service.DictThemeService;
 import com.yupi.springbootinit.service.ImportApprovalService;
 import com.yupi.springbootinit.service.SiteImportAsyncWorker;
 import com.yupi.springbootinit.service.SiteImportService;
+import com.yupi.springbootinit.utils.DataQualityUtils;
 import com.yupi.springbootinit.utils.IdUtil;
 import io.swagger.annotations.Api;
 import lombok.RequiredArgsConstructor;
@@ -234,6 +235,16 @@ public class SiteImportServiceImpl implements SiteImportService {
 
                 Map<String, Object> row = readRowMap(it.getRawJson());
 
+                String normalizedQuality = DataQualityUtils.normalizeOrDefault(
+                        row.get("dataQuality") == null ? null : row.get("dataQuality").toString());
+                if (normalizedQuality == null) {
+                    it.setValidStatus(ImportItemValidStatus.INVALID.name());
+                    it.setValidMsg("数据质量取值非法（仅支持：一般/重要/非常重要）");
+                    itemMapper.updateById(it);
+                    continue;
+                }
+                row.put("dataQuality", normalizedQuality);
+
                 // 1) 主题名称→ID（仅当 themeIdsText 为空且存在 themeNamesText）
                 String themeNamesText = trimToNull((String) row.get("themeNamesText"));
                 if (StringUtils.hasText(themeNamesText) && !StringUtils.hasText((String) row.get("themeIdsText"))) {
@@ -296,6 +307,7 @@ public class SiteImportServiceImpl implements SiteImportService {
                     existing.setSummary(trimToNull((String) row.get("summary")));
                     existing.setKeywordsText(trimToNull((String) row.get("keywordsText")));
                     existing.setRemark(trimToNull((String) row.get("remark")));
+                    existing.setDataQuality(trimToNull((String) row.get("dataQuality")));
                     existing.setStatus(ImportApplyStatus.PENDING.name());
                     // 清理审核痕迹（用作重提）
                     existing.setReviewReason(null);
@@ -454,6 +466,7 @@ public class SiteImportServiceImpl implements SiteImportService {
         mergeIfPresent(row, "summary", dto.getSummary());
         mergeIfPresent(row, "keywordsText", dto.getKeywordsText());
         mergeIfPresent(row, "remark", dto.getRemark());
+        mergeIfPresent(row, "dataQuality", dto.getDataQuality());
         mergeIfPresent(row, "scopesText", normalizeCsvUpper(dto.getScopesText()));
 
         // 主题：可传名称串、也可直接给ID串；两者都给时以 ID 为准
@@ -464,14 +477,14 @@ public class SiteImportServiceImpl implements SiteImportService {
             // 不在此处做名称→ID 映射；提交时统一处理
         }
 
-        it.setRawJson(writeRowJson(row));
-
         // 2) 重新轻校验（必填、长度）
         List<String> errs = new ArrayList<>();
         String siteName = trimToNull((String) row.get("siteName"));
         String url = trimToNull((String) row.get("url"));
         String main = trimToNull((String) row.get("mainCountryCode"));
         String themeNamesText = trimToNull((String) row.get("themeNamesText"));
+        String normalizedQuality = DataQualityUtils.normalizeOrDefault(
+                row.get("dataQuality") == null ? null : row.get("dataQuality").toString());
 
         if (isBlank(siteName)) errs.add("网站名称为空");
         if (isBlank(url)) errs.add("网站地址为空");
@@ -479,6 +492,13 @@ public class SiteImportServiceImpl implements SiteImportService {
         if (isBlank(themeNamesText)) errs.add("国家主题为空");
         if (siteName != null && siteName.length() > 40) errs.add("名称长度>40");
         if (url != null && url.length() > 512) errs.add("URL长度>512");
+        if (normalizedQuality == null) errs.add("数据质量取值非法（仅支持：一般/重要/非常重要）");
+
+        if (normalizedQuality != null) {
+            row.put("dataQuality", normalizedQuality);
+        }
+
+        it.setRawJson(writeRowJson(row));
 
         if (!errs.isEmpty()) {
             it.setValidStatus(ImportItemValidStatus.INVALID.name());
@@ -678,6 +698,9 @@ public class SiteImportServiceImpl implements SiteImportService {
         po.setSummary(trimToNull((String) row.get("summary")));
         po.setKeywordsText(trimToNull((String) row.get("keywordsText")));
         po.setRemark(trimToNull((String) row.get("remark")));
+        String dataQuality = DataQualityUtils.normalizeOrDefault(
+                row.get("dataQuality") == null ? null : row.get("dataQuality").toString());
+        po.setDataQuality(dataQuality == null ? DataQualityUtils.QUALITY_NORMAL : dataQuality);
 
         po.setStatus(ImportApplyStatus.PENDING.name());
         po.setSubmitUserId(job.getOwnerUserId());

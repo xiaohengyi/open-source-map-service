@@ -52,6 +52,9 @@ public class ImportApplyVO {
     @ApiModelProperty("备注")
     private String remark;
 
+    @ApiModelProperty("数据质量")
+    private String dataQuality;
+
     @ApiModelProperty("状态")
     private String status;
 

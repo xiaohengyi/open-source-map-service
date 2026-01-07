@@ -51,6 +51,9 @@ public class SiteApplyDO {
     @ApiModelProperty("备注")
     @TableField("REMARK")
     private String remark;
+    @ApiModelProperty("数据质量：一般/重要/非常重要")
+    @TableField("DATA_QUALITY")
+    private String dataQuality;
     @ApiModelProperty("主要国家代码")
     @TableField("MAIN_COUNTRY_CODE")
     private String mainCountryCode;

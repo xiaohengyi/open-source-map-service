@@ -37,6 +37,8 @@ public class SiteApplyVO {
     private String keywordsText;
     @ApiModelProperty("备注")
     private String remark;
+    @ApiModelProperty("数据质量：一般/重要/非常重要")
+    private String dataQuality;
     @ApiModelProperty("主覆盖国家代码（ISO2）")
     private String mainCountryCode;
     @ApiModelProperty("主覆盖国家中文名")

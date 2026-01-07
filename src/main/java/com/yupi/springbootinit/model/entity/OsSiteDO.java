@@ -53,6 +53,10 @@ public class OsSiteDO {
     @TableField("REMARK")
     private String remark;
 
+    @ApiModelProperty("数据质量：一般/重要/非常重要")
+    @TableField("DATA_QUALITY")
+    private String dataQuality;
+
     @ApiModelProperty("主覆盖国家代码（ISO-3166-1 alpha-2，例：CN/US/GB；真实范围见关系表）")
     @TableField("MAIN_COUNTRY_CODE")
     private String mainCountryCode;

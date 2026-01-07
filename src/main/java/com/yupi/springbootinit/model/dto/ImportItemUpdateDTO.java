@@ -52,6 +52,9 @@ public class ImportItemUpdateDTO {
     @ApiModelProperty(value = "备注（可选）")
     private String remark;
 
+    @ApiModelProperty(value = "数据质量（一般/重要/非常重要，留空则默认一般）")
+    private String dataQuality;
+
     @ApiModelProperty(value = "覆盖国家代码列表（逗号分隔，可选，服务端统一转大写去重）", example = "CN,US,JP")
     private String scopesText;
 
